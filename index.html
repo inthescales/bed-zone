@@ -17,16 +17,20 @@
         var protagonist_size = 24;
         var protagonist_scale = 4;
 
-        var game = new Phaser.Game(canvas_width, canvas_height, Phaser.CANVAS, '', { preload: preload, create: create});
+        var game = new Phaser.Game(canvas_width, canvas_height, Phaser.CANVAS, '', { preload: preload, create: create, update: update});
         var graphics;
         var layer;
         var cursors;
         
         var protagonist;
         
-        var alice_text = "You can't focus your eyes...";
-        var alice_text_obj = null
+        var alice_text = [];
+        var alice_text_obj = [];
         var alice_scroll = 0;
+        
+        var done_reading = false;
+        var eyes_text = "You can't focus your eyes..."
+        var eyes_text_obj = null;
         
         var current_mode = "sleep";
         
@@ -67,23 +71,52 @@
             leftKey.onUp.add(keyReleased, this);
         }
         
-        function get_alice() {
+        function update() {
         
-            var rawFile = new XMLHttpRequest();
-            rawFile.open("GET", "carroll-alice_1.txt", true);
-            rawFile.onreadystatechange = function ()
-            {
-                if(rawFile.readyState === 4)
-                {
-                    if(rawFile.status === 200 || rawFile.status == 0)
-                    {
-                        var allText = rawFile.responseText;
-                        alice_text = allText;
+            if (current_mode == "read") {
+
+                if (alice_text_obj[2].textBounds.bottom + alice_text_obj[2].y <= 0 - 32) {
+                
+                    if (done_reading == false) {
+                        done_reading = true;
+                        
+                        if (eyes_text_obj.alpha == 0) {
+                            game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                        }
+                    }
+                } else {
+                    alice_scroll += 0.25;
+                    for (var j = 0; j < 3; j++) {
+                        alice_text_obj[j].y = -alice_scroll;
                     }
                 }
             }
-            
-            rawFile.send(null);
+        
+        }
+        
+        function get_alice() {
+        
+            var rawFile = [0, 0, 0];
+            for (var n = 1; n < 4; n++) {
+                
+                rawFile[n-1] = new XMLHttpRequest();
+                rawFile[n-1].open("GET", "carroll-alice_" + n + ".txt", true);
+                rawFile[n-1].n = n;
+                rawFile[n-1].onreadystatechange = function ()
+                {
+                    if(this.readyState === 4) {
+                    
+                        if(this.status === 200 || this.status == 0)
+                        {
+                            var allText = this.responseText;
+                            //alert(allText);
+                            alice_text[this.n-1] = allText;
+                        }
+                    }
+                }
+                
+                rawFile[n-1].send(null);
+            }
         }
         
         function keyReleased() {
@@ -151,21 +184,49 @@
         function leave_mode(old_mode) {
             
             if (old_mode == "read") {
-                game.add.tween(alice_text_obj).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                for (var j = 0; j < 3; j++) {
+                    game.add.tween(alice_text_obj[j]).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                }
+                
+                if (eyes_text_obj.alpha > 0) {
+                    game.add.tween(eyes_text_obj).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                }
             }
         }
         
         function start_reading() {
 
             var style = { font: "16px Arial", fill: "#fff", align: "left", boundsAlignH: "left", boundsAlignV: "top", wordWrap: true, wordWrapWidth: canvas_width - 32 };
+            var center_style = { font: "16px Arial", fill: "#fff", align: "center", boundsAlignH: "left", boundsAlignV: "top", wordWrap: true, wordWrapWidth: canvas_width - 32 };
 
-            if (alice_text_obj == null) {
-                alice_text_obj = game.add.text(0, 0, alice_text, style);
-                alice_text_obj.setTextBounds(16, 16, canvas_width - 16, canvas_height - 16);
-                alice_text_obj.alpha = 100;
+            if (alice_text_obj[0] == null) {
+            
+                alice_text_obj[0] = game.add.text(0, 0, alice_text[0], style);
+                var buffer = canvas_width - alice_text_obj[0].width;
+                alice_text_obj[0].setTextBounds(buffer / 2, canvas_height, canvas_width - buffer);
+                alice_text_obj[0].alpha = 0;
+                
+                alice_text_obj[1] = game.add.text(0, 0, alice_text[1], style);
+                alice_text_obj[1].setTextBounds(buffer / 2, canvas_height + alice_text_obj[0].height, canvas_width - buffer);
+                alice_text_obj[1].alpha = 0;
+                
+                alice_text_obj[2] = game.add.text(0, 0, alice_text[2], style);
+                alice_text_obj[2].setTextBounds(buffer / 2, canvas_height + alice_text_obj[0].height + alice_text_obj[1].height, canvas_width - buffer);
+                alice_text_obj[2].alpha = 0;
+                
+                eyes_text_obj = game.add.text(0, 0, eyes_text, center_style);
+                var eyes_buffer = canvas_width - eyes_text_obj.width;
+                eyes_text_obj.setTextBounds(eyes_buffer / 2, canvas_height / 4)
+                eyes_text_obj.alpha = 0;
             }
             
-            //game.add.tween(alice_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+            for (var j = 0; j < 3; j++) {
+                game.add.tween(alice_text_obj[j]).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+            }
+            
+            if (done_reading && eyes_text_obj.alpha == 0) {
+                game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+            }
         }
     }
     
