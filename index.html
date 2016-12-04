@@ -17,7 +17,7 @@
         var protagonist_size = 24;
         var protagonist_scale = 4;
 
-        var game = new Phaser.Game(canvas_width, canvas_height, Phaser.CANVAS, '', { preload: preload, create: create, update: update});
+        var game = new Phaser.Game(canvas_width, canvas_height, Phaser.CANVAS, '', { preload: preload, create: create, update: update, render: render});
         var graphics;
         var layer;
         var cursors;
@@ -27,8 +27,8 @@
         var alice_text = [];
         var alice_text_obj = [];
         var alice_scroll = 0;
-        
-        var done_reading = false;
+        var alice_started = -1;
+        var alice_done = -1;
         var eyes_text = "You can't focus your eyes..."
         var eyes_text_obj = null;
         
@@ -44,6 +44,8 @@
             game.load.spritesheet('eat', 'eat.png', protagonist_size, protagonist_size);
             game.load.spritesheet('lie', 'lie.png', protagonist_size, protagonist_size);
             
+            game.time.advancedTiming = true;
+            
             get_alice();
         }
 
@@ -53,7 +55,9 @@
             protagonist.scale.set(protagonist_scale);
             protagonist.smoothed = false;
             
-            set_mode("lie");
+            game.stage.backgroundColor = "#038ac4";
+            
+            set_mode("lie");            
             
             // Key presses
             cursors = game.input.keyboard.createCursorKeys();
@@ -72,26 +76,68 @@
         }
         
         function update() {
-        
+ 
             if (current_mode == "read") {
 
-                if (alice_text_obj[2].textBounds.bottom + alice_text_obj[2].y <= 0 - 32) {
+                for (var j = 0; j < 3; j++) {
                 
-                    if (done_reading == false) {
-                        done_reading = true;
-                        
-                        if (eyes_text_obj.alpha == 0) {
-                            game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                    var excess = 0;
+                    
+                    for (var k = 0; k < j; k++) {
+                        excess += alice_text_obj[k].height;
+                    }                    
+                
+                    if (alice_done < j && alice_text_obj[j].height + alice_text_obj[j].y + excess + canvas_height <= -32) {
+                        alice_done = j;
+                    }
+                
+                    if (alice_started < j && alice_text_obj[j].y + excess <= canvas_height + 16) {
+                        alice_started = j;
+                    }
+                }
+            
+                for (var j = 0; j < 3; j++) {
+                
+                    if (alice_started >= j && alice_done < j) {
+                        if (alice_text_obj[j].alpha <= 0) {
+                            game.add.tween(alice_text_obj[j]).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
                         }
                     }
+                    else {
+                        if (alice_text_obj[j].alpha > 0) {
+                            game.add.tween(alice_text_obj[j]).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                        }
+                    }
+                }
+            
+                if (alice_done >= 2) {
+                    
+                    if (eyes_text_obj.alpha == 0) {
+                        game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                    }
                 } else {
-                    alice_scroll += 0.25;
+                
+                    //var scroll_amount = 25;
+                    if (game.time.fps > 0) {
+                        scroll_amount = (60 / game.time.fps) * 0.25;
+                    }
+                    
+                    alice_scroll += scroll_amount;
+                    
+                    
                     for (var j = 0; j < 3; j++) {
                         alice_text_obj[j].y = -alice_scroll;
                     }
                 }
             }
         
+        }
+        
+        function render() {
+        
+            game.debug.text(game.time.fps, 10, 10, "#ffffff");
+            //game.debug.text(alice_started, 10, 25, "#ffffff");
+            //game.debug.text(alice_done, 10, 40, "#ffffff");
         }
         
         function get_alice() {
@@ -221,10 +267,12 @@
             }
             
             for (var j = 0; j < 3; j++) {
-                game.add.tween(alice_text_obj[j]).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                if (alice_started >= j && alice_done < j) {
+                    game.add.tween(alice_text_obj[j]).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+                }
             }
             
-            if (done_reading && eyes_text_obj.alpha == 0) {
+            if (alice_done >= 3 && eyes_text_obj.alpha == 0) {
                 game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
             }
         }
