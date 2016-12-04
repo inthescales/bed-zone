@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Bedzone</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="/phaser.js"></script>
+    </head>
+    <body>
+
+    <script type="text/javascript">
+
+    window.onload = function() {
+    
+        var canvas_width = 800;
+        var canvas_height = 600;
+        var protagonist_size = 24;
+        var protagonist_scale = 4;
+
+        var game = new Phaser.Game(canvas_width, canvas_height, Phaser.CANVAS, '', { preload: preload, create: create});
+        var graphics;
+        var layer;
+        var cursors;
+        
+        var protagonist;
+        
+        var alice_text = "You can't focus your eyes...";
+        var alice_text_obj = null
+        var alice_scroll = 0;
+        
+        var current_mode = "sleep";
+        
+        function preload () {
+        
+            game.scale.pageAlignHorizontally = true;
+            
+            game.load.spritesheet('sleep', 'sleep.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('read', 'read.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('chat', 'chat.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('eat', 'eat.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('lie', 'lie.png', protagonist_size, protagonist_size);
+            
+            get_alice();
+        }
+
+        function create() {
+
+            protagonist = game.add.sprite((canvas_width / 2) - (protagonist_size * protagonist_scale / 2), (canvas_height / 2) - (protagonist_size * protagonist_scale / 2));
+            protagonist.scale.set(protagonist_scale);
+            protagonist.smoothed = false;
+            
+            set_mode("lie");
+            
+            // Key presses
+            cursors = game.input.keyboard.createCursorKeys();
+            var upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
+            var downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
+            var rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+            var leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+            upKey.onDown.add(upKeyPressed, this);
+            upKey.onUp.add(keyReleased, this);
+            downKey.onDown.add(downKeyPressed, this);
+            downKey.onUp.add(keyReleased, this);
+            rightKey.onDown.add(rightKeyPressed, this);
+            rightKey.onUp.add(keyReleased, this);
+            leftKey.onDown.add(leftKeyPressed, this);
+            leftKey.onUp.add(keyReleased, this);
+        }
+        
+        function get_alice() {
+        
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("GET", "carroll-alice_1.txt", true);
+            rawFile.onreadystatechange = function ()
+            {
+                if(rawFile.readyState === 4)
+                {
+                    if(rawFile.status === 200 || rawFile.status == 0)
+                    {
+                        var allText = rawFile.responseText;
+                        alice_text = allText;
+                    }
+                }
+            }
+            
+            rawFile.send(null);
+        }
+        
+        function keyReleased() {
+            set_mode("lie");
+        }
+        
+        function upKeyPressed() {
+            set_mode("sleep")
+        }
+        
+        function downKeyPressed() {
+            set_mode("chat");
+        }
+        
+        function rightKeyPressed() {
+            set_mode("read");
+        }
+        
+        function leftKeyPressed() {
+            set_mode("eat");
+        }
+        
+        function set_mode(new_mode) {
+        
+            var key = new_mode;
+            var anim = null;
+            var speed = 0;
+        
+            if (new_mode == current_mode) {
+                return;
+            }
+        
+            if (new_mode == "sleep") {
+            
+                speed = 5;
+            }
+            else if (new_mode == "read") {
+            
+                speed = 5;
+                start_reading();
+            }
+            else if (new_mode == "eat") {
+            
+                speed = 5;
+            
+            } else if (new_mode == "chat") {
+            
+                speed = 5;
+            } else if (new_mode == "lie") {
+            
+                speed = 5;
+            }
+            
+            if (key == null) return;
+            
+            protagonist.loadTexture(key);
+            protagonist.animations.add(key);
+            protagonist.animations.play(key, speed, true);
+            
+            leave_mode(current_mode);
+            current_mode = key;
+        
+        }
+        
+        function leave_mode(old_mode) {
+            
+            if (old_mode == "read") {
+                game.add.tween(alice_text_obj).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+            }
+        }
+        
+        function start_reading() {
+
+            var style = { font: "16px Arial", fill: "#fff", align: "left", boundsAlignH: "left", boundsAlignV: "top", wordWrap: true, wordWrapWidth: canvas_width - 32 };
+
+            if (alice_text_obj == null) {
+                alice_text_obj = game.add.text(0, 0, alice_text, style);
+                alice_text_obj.setTextBounds(16, 16, canvas_width - 16, canvas_height - 16);
+                alice_text_obj.alpha = 100;
+            }
+            
+            //game.add.tween(alice_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
+        }
+    }
+    
+    </script>
+
+    </body>
+</html>
