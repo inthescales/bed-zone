@@ -32,17 +32,30 @@
         var eyes_text = "You can't focus your eyes..."
         var eyes_text_obj = null;
         
-        var current_mode = "sleep";
+        var whale_sound = null;
+        var dream = [];
+        var dream_scroll = 0;
+        var dream_count = 3;
+        var wake_color = "#038ac4";
+        var sleep_color = "#073870";
+        
+        var current_mode = "";
         
         function preload () {
         
             game.scale.pageAlignHorizontally = true;
             
-            game.load.spritesheet('sleep', 'sleep.png', protagonist_size, protagonist_size);
-            game.load.spritesheet('read', 'read.png', protagonist_size, protagonist_size);
-            game.load.spritesheet('chat', 'chat.png', protagonist_size, protagonist_size);
-            game.load.spritesheet('eat', 'eat.png', protagonist_size, protagonist_size);
-            game.load.spritesheet('lie', 'lie.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('sleep', 'assets/sleep.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('read', 'assets/read.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('chat', 'assets/chat.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('eat', 'assets/eat.png', protagonist_size, protagonist_size);
+            game.load.spritesheet('lie', 'assets/lie.png', protagonist_size, protagonist_size);
+            
+            game.load.audio('whale', 'whales_modified.ogg');
+            game.load.image('dream_1', 'assets/dream_1.png');
+            game.load.image('dream_2', 'assets/dream_2.png');
+            game.load.image('dream_3', 'assets/dream_3.png');
+            whale_sound = new Phaser.Sound(game, 'whale', 1, true);
             
             game.time.advancedTiming = true;
             
@@ -55,7 +68,7 @@
             protagonist.scale.set(protagonist_scale);
             protagonist.smoothed = false;
             
-            game.stage.backgroundColor = "#038ac4";
+            game.stage.backgroundColor = wake_color;
             
             set_mode("lie");            
             
@@ -117,16 +130,29 @@
                     }
                 } else {
                 
-                    //var scroll_amount = 25;
+                    var scroll_amount = 0.25;
                     if (game.time.fps > 0) {
                         scroll_amount = (60 / game.time.fps) * 0.25;
                     }
                     
                     alice_scroll += scroll_amount;
                     
-                    
                     for (var j = 0; j < 3; j++) {
                         alice_text_obj[j].y = -alice_scroll;
+                    }
+                }
+            }
+            else if (current_mode == "sleep") {
+
+                var scroll_amount = 0.5;
+                //if (game.time.fps > 0) {
+                //    scroll_amount = (60 / game.time.fps) * 0.25;
+                //}
+                                
+                for (var j = 0; j < 3; j++) {
+                    dream[j].y -= scroll_amount;
+                    if (dream[j].y <= -canvas_height) {
+                        dream[j].y = canvas_height * 2;
                     }
                 }
             }
@@ -136,8 +162,8 @@
         function render() {
         
             game.debug.text(game.time.fps, 10, 10, "#ffffff");
-            //game.debug.text(alice_started, 10, 25, "#ffffff");
-            //game.debug.text(alice_done, 10, 40, "#ffffff");
+            game.debug.text(alice_started, 10, 25, "#ffffff");
+            game.debug.text(alice_done, 10, 40, "#ffffff");
         }
         
         function get_alice() {
@@ -198,6 +224,7 @@
             if (new_mode == "sleep") {
             
                 speed = 5;
+                start_sleeping();
             }
             else if (new_mode == "read") {
             
@@ -238,6 +265,14 @@
                     game.add.tween(eyes_text_obj).to( { alpha: 0 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
                 }
             }
+            else if (old_mode == "sleep") {
+            
+                whale_sound.pause();
+                for (var j = 0; j < 3; j++) {    
+                    dream[j].alpha = 0;
+                }
+                game.stage.backgroundColor = wake_color;
+            }
         }
         
         function start_reading() {
@@ -275,6 +310,32 @@
             if (alice_done >= 3 && eyes_text_obj.alpha == 0) {
                 game.add.tween(eyes_text_obj).to( { alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 0, 0, false);
             }
+        }
+        
+        function start_sleeping() {
+        
+            whale_sound.play();
+            
+            if (dream[0] == null) {
+            
+                for (var j = 0; j < 3; j++) {
+                    dream[j] = game.add.sprite(200, canvas_height * (j + 1));
+                    dream[j].scale.set(protagonist_scale);
+                    dream[j].smoothed = false;
+                }
+                
+                dream[0].loadTexture('dream_3');
+                dream[1].loadTexture('dream_1');
+                dream[2].loadTexture('dream_2');
+            }
+            
+            for (var j = 0; j < 3; j++) {
+                dream[j].y = canvas_height * (j + 1) + 300;
+                dream[j].alpha = 1;
+            }
+            
+            game.stage.backgroundColor = sleep_color;
+        
         }
     }
     
