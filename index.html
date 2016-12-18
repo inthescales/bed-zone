@@ -5,6 +5,8 @@
         <title>Bedzone</title>
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="/phaser.js"></script>
+		<script src="/jquery-1.11.2.min.js"></script>
+        <script src="/tracery.min.js"></script>
     </head>
     <body>
 
@@ -38,6 +40,57 @@
         var dream_count = 3;
         var wake_color = "#038ac4";
         var sleep_color = "#073870";
+        
+        var chat_obj = [];
+        var chat_name = [];
+        var chat_text = [];
+        var chat_buffer = [];
+        var chat_timer = null;
+        var chat_lines = 8;
+        var chat_grammar = {
+            "convo": ["#start##topic#"],
+            "start": ["#greeting#\n#greeting#\n#starter#\n"],
+            "greeting": ["Hey#!#", "Hi#!#", "Hello#!#"],
+            "starter": ["#howzit#\n#good#", "#sup#\n#nothing_sup#"],
+            "sup": ["What's up?", "sup?", "What's goin on?"],
+            "howzit": ["How's it going?", "How are you", "How are you doing", "How ya doin"],
+            "good": ["Pretty good", "Fine", "Not bad", "Not too bad", "Decent"],
+            "nothing_sup": ["nothing", "not much", "not too much", "eh", "same as always"],
+            
+            "topic": ["#did_you_go#\n#affirmative#\n#how_was_event#\n#review#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_go#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_not_go#\n#understood#", "#did_you_go#\n#did_not_go#\n#understood#"],
+            "did_you_go": ["#start_tag#did you go to #event#?", "#start_tag#did you end up going to #event#?"],
+            "event": ["that #event_type#", "#name#'s #event_type#"],
+            "event_type": ["movie", "show", "party", "thing", "event", "performance", "reading", "lecture", "whatever it was", "orgy"],
+            "did_not_go": ["#negative#, #excuse#"],
+            "did_go": ["#affirmative#, #review#"],
+            "negative": ["no", "nah", "nope"],
+            "excuse": ["I was too busy", "I had to work", "I was tired", "I wasn't feeling well", "I was sick", "I got distracted", "my family was in town", "I was out of town", "I slept through it", "I forgot"],
+            "affirmative": ["yeah", "yes"],
+            "how_was_event": ["how was it?", "was it good?", "how'd it go?", "did you have a good time?"],
+            "review": ["#neg_review#", "#pos_review#"],
+            "neg_review": ["It was #neg_event#", "#neg_event# as hell"],
+            "neg_event": ["boring", "lame", "a snooze", "terrible", "horrible", "dull"],
+            "pos_review": ["It was #pos_event#"],
+            "pos_event": ["fun", "super fun", "great", "awesome", "a blast", "pretty good", "nice"],
+            "event_react": ["#understood#", "#event_reflect#"],
+            "event_reflect": ["", "wish I'd gone", "sorry I missed it\n#forgive#", "I wonder if there'll be another one\n#unknown#", "maybe I'll go next time"],
+            "event_detail": ["#name# was there\n#name_react#", "#figure# was there\n#excited#"],
+            "name_react": ["#approve#", "#disapprove#", "#disapprove#\n#forgive#"],
+            
+            "start_tag": ["hey, ", "so, ", "", ""],
+            "understood": ["ah", "I see", "gotcha", "mhm"],
+            "approve": ["nice", "cool", "rad", "awesome", "neat", "sweet"],
+            "excited": ["Oh!!!", "~swoon~", "ahhhhhhh!", "OMG", "Really?????"],
+            "disapprove": ["that sucks", "lame", "aww", "shame"],
+            "forgive": ["it's ok", "it's fine", "don't worry about it", "whatever", "it's cool", "it's no problem"],
+            "unknown": ["I don't know", "maybe", "who knows", "couldn't say", "I'm not sure", "it's possible", "could be"],
+            "name": ["Jack", "Jeremy", "Tom", "Harlan", "Mack", "Forrest", "Fran", "Kate", "Erin", "Phoenix", "Zoe", "Rain", "Chloe", "Brent", "Jamaal", "Tariq", "Cynthia", "Pip", "Zip", "Bud", "Marten"],
+            "figure": ["that #person_type# you like", "that #person_type# from #name#'s #event_type#", "that #person_type# from your #event_type#", "that #person_type# um...\n#name#?\n#affirmative#\n"],
+            "person_type": ["guy", "girl"],
+            "laugh": ["hehe", "hehehe", "haha", "hahaha", "heh", "lol", "lolol", "lmao", "rofl"],
+            "!": ["!", ""]
+        };
+        var grammar_obj = null;
         
         var current_mode = "";
         
@@ -144,7 +197,7 @@
             }
             else if (current_mode == "sleep") {
 
-                var scroll_amount = 0.5;
+                var scroll_amount = 0.3;
                 //if (game.time.fps > 0) {
                 //    scroll_amount = (60 / game.time.fps) * 0.25;
                 //}
@@ -155,6 +208,10 @@
                         dream[j].y = canvas_height * 2;
                     }
                 }
+            } else if (current_mode == "chat") {
+            
+                
+            
             }
         
         }
@@ -162,8 +219,8 @@
         function render() {
         
             game.debug.text(game.time.fps, 10, 10, "#ffffff");
-            game.debug.text(alice_started, 10, 25, "#ffffff");
-            game.debug.text(alice_done, 10, 40, "#ffffff");
+            //game.debug.text(alice_started, 10, 25, "#ffffff");
+            //game.debug.text(alice_done, 10, 40, "#ffffff");
         }
         
         function get_alice() {
@@ -189,6 +246,14 @@
                 
                 rawFile[n-1].send(null);
             }
+        }
+        
+        function get_chat(num) {
+        
+            var grammar_obj = tracery.createGrammar(chat_grammar);
+            var trace = grammar_obj.flatten("#convo#");
+            var split = trace.split("\n");
+            return split;
         }
         
         function keyReleased() {
@@ -235,10 +300,13 @@
             
                 speed = 5;
             
-            } else if (new_mode == "chat") {
+            }
+            else if (new_mode == "chat") {
             
                 speed = 5;
-            } else if (new_mode == "lie") {
+                start_chatting();
+            }
+            else if (new_mode == "lie") {
             
                 speed = 5;
             }
@@ -272,6 +340,13 @@
                     dream[j].alpha = 0;
                 }
                 game.stage.backgroundColor = wake_color;
+            }
+            else if (old_mode == "chat") {
+            
+                for (var j = 0; j < 3; j++) {
+                    chat_obj[j].alpha = 0;
+                }
+                clearInterval(chat_timer);
             }
         }
         
@@ -330,12 +405,82 @@
             }
             
             for (var j = 0; j < 3; j++) {
-                dream[j].y = canvas_height * (j + 1) + 300;
+                dream[j].y = canvas_height * (j + 1) + 100;
                 dream[j].alpha = 1;
             }
             
             game.stage.backgroundColor = sleep_color;
+        }
         
+        function start_chatting() {
+        
+            var style = { font: "16px Arial", fill: "#fff", align: "left", boundsAlignH: "left", boundsAlignV: "top", wordWrap: true, wordWrapWidth: canvas_width - 32 };
+            if (chat_obj[0] == null) {
+            
+                for (var j = 0; j < 3; j++) {
+                
+                    chat_text[j] = [];
+                    
+                    chat_obj[j] = game.add.text(0, 0, "", style);
+                    chat_obj[j].setTextBounds((canvas_width / 3) * j + 20, 20 , (canvas_width / 3) - 40, canvas_height - 20);
+                    
+                    chat_buffer[j] = get_chat(j);
+                }
+            
+                chat_name[0] = "date";
+                chat_name[1] = "bro";
+                chat_name[2] = "them";
+            
+            }
+            
+            for (var j = 0; j < 1; j++) {
+                chat_obj[j].alpha = 1;
+            }
+            
+            chat_happens();
+            chat_timer = setInterval(chat_happens, 2000);
+        
+        }
+        
+        // ETC ---------------------
+        
+        function chat_happens() {
+        
+            var j = Math.floor((Math.random() * 3));
+            
+            var line = chat_buffer[j][0];
+            chat_text[j].push(line);
+            
+            var displayText = display_text_for(chat_text[j], "You", chat_name[j]);
+            
+            chat_obj[j].setText(displayText);
+            chat_buffer[j] = chat_buffer[j].slice(1, chat_buffer[j].length);
+            
+            if (chat_buffer[j].length == 0) {
+                chat_buffer[j] = get_chat(j);
+            }
+            
+            if (chat_text[j].length > chat_lines) {
+                chat_text[j] = chat_text[j].slice(1, chat_text[j].length);
+            }
+        }
+        
+        function display_text_for(text, name1, name2) {
+        
+            var ret = "";
+            
+            for (var i = 0; i < text.length; i++) {
+            
+                if (i%2 == 0) {
+                    ret += name1;
+                } else {
+                    ret += name2;
+                }
+                
+                ret += ": " + text[i] + "\n";
+            }
+            
+            return ret;
         }
     }
     
