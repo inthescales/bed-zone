@@ -46,18 +46,40 @@
         var chat_text = [];
         var chat_buffer = [];
         var chat_timer = null;
-        var chat_lines = 8;
+        var chat_lines = 14;
+        var chat_speaker = [];
         var chat_grammar = {
-            "convo": ["#start##topic#"],
+            "convo": ["#start#\n#topic#"],
             "start": ["#greeting#\n#greeting#\n#starter#\n"],
+            "start_love": ["#greeting_love#\n#greeting_love#\n#starter#"],
+            "start_bro": ["#greeting_bro#\n#greeting_bro#\n#starter#"],
+            "start_cold": ["#greeting_cold#\n#greeting_cold#\n#starter_cold#"],
             "greeting": ["Hey#!#", "Hi#!#", "Hello#!#"],
+            "greeting_love": ["Hey #lover_name#", "Hi #lover_name#", "<3", "Heyyyy", "Hiiiii", "Hey you", "Hey there"],
+            "lover_name": ["babe", "baby", "sweetie", "bb", "beautiful", "love"],
+            "greeting_bro": ["Bro", "Hey #friend_name#", "#friend_name#", "hi #friend_name#", "yo", "yooooooo"],
+            "friend_name": ["bro", "dude", "girl", "buddy", "friend"],
+            "greeting_cold": ["...", "hi...", "hey...", "hi", "hey", "hello.", "hi.", "hey."],
             "starter": ["#howzit#\n#good#", "#sup#\n#nothing_sup#"],
             "sup": ["What's up?", "sup?", "What's goin on?"],
             "howzit": ["How's it going?", "How are you", "How are you doing", "How ya doin"],
             "good": ["Pretty good", "Fine", "Not bad", "Not too bad", "Decent"],
             "nothing_sup": ["nothing", "not much", "not too much", "eh", "same as always"],
+            "starter_cold": ["#umm#\n#sup_cold#"],
+            "umm": ["Umm", "So", "...", "I want to say..."],
+            "sup_cold": ["What do you want?", "What's this about?", "what", "well?"],
             
-            "topic": ["#did_you_go#\n#affirmative#\n#how_was_event#\n#review#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_go#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_not_go#\n#understood#", "#did_you_go#\n#did_not_go#\n#understood#"],
+            "topic": ["#did_you_go_block#", "#did_you_see_block#"],
+            
+            "talk_lover": ["#mushy#", "#mushy#\n#mushy#", "#lover_topic#", "#lover_topic#", "#lover_topic#"],
+            "mushy": ["love youuuu", "<3", "<3!", "love ya", "*hug*", "*kisses*", "love you", "you're s o cute", "you're cute", ":3", ":D", "-v-", "omg"],
+            "lover_topic": ["#did_you_go_block#", "#did_you_see_block#", "#cute_convo#"],
+            
+            "talk_bro": ["#bro_out#", "#bro_out#\n#bro_out#", "#bro_topic#", "#bro_topic#", "#bro_topic#"],
+            "bro_out": ["bro", "BRO", "SUP", "suppppp", "YO", "eyyyyyyy", "eyyyyyyyyyyyyyy", "dude", "DUDE", "OMG"],
+            "bro_topic": ["#did_you_go_block#", "#did_you_see_block#", "#dumb_convo#", "#cute_convo#"],
+            
+            "did_you_go_block": ["#did_you_go#\n#affirmative#\n#how_was_event#\n#review#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_go#\n#event_react#\n#event_detail#", "#did_you_go#\n#did_not_go#\n#understood#", "#did_you_go#\n#did_not_go#\n#understood#"],
             "did_you_go": ["#start_tag#did you go to #event#?", "#start_tag#did you end up going to #event#?"],
             "event": ["that #event_type#", "#name#'s #event_type#"],
             "event_type": ["movie", "show", "party", "thing", "event", "performance", "reading", "lecture", "whatever it was", "orgy"],
@@ -77,14 +99,104 @@
             "event_detail": ["#name# was there\n#name_react#", "#figure# was there\n#excited#"],
             "name_react": ["#approve#", "#disapprove#", "#disapprove#\n#forgive#"],
             
+            "did_you_see_block": ["#did_you_see#"],
+            "did_you_see": ["#start_tag#did you see that new #see_thing##see_thing_qual#?\n#did_see_block#", "#start_tag#did you see that new #see_thing##see_thing_qual#?\n#did_not_see_block#"],
+            "see_thing": ["movie", "movie", "show", "tv show", "meme", "performance piece", "art show", "gallery show"],
+            "see_thing_qual": [" you were talking about?", " everyone's talking about", " #name# #see_report#", " #figure# #see_report#"],
+            "see_report": ["mentioned", "was talking about", "won't shut up about", "is really into", "was all excited about"],
+            "did_see_block": ["#did_see#\n#how_was_seen#\n#seen_review_block#", "#did_see# #seen_review_block#"],
+            "did_see": ["Yeah I did!", "I did!", "Yeah", "Yeah I did", "I did", "Yep", "yah", "indeed"],
+            "how_was_seen": ["Was it good?", "How was it?", "It any good?", "What'd you think?", "Oh yeah?", "And?"],
+            "seen_review_block": ["#seen_review_pos#\n#seen_review_pos_resp#", "#seen_review_neg#\n#seen_review_neg_resp#"],
+            "seen_review_pos": ["It was pretty good", "It was great!", "It was decent", "I enjoyed it", "I liked it", "Not bad at all", "Not bad", "It was fine"],
+            "seen_review_neg": ["It wasn't that great", "It was bad", "It sucked", "It was shitty", "I wasn't that into it", "I wouldn't recommend it", "You can skip it"],
+            "seen_review_pos_resp": ["#approve#", "Oh #approve#", "#approve# :)", "I should check it out", "I'll check it out"],
+            "seen_review_neg_resp": ["Aww", "#disapprove#", "Aww #disapprove#", "Oh #disapprove#", "Guess I'll skip it", "Figured", "That's a shame"],
+            "did_not_see_block": ["#did_not_see#\n#did_not_see_resp#"],
+            "did_not_see": ["No", "Nah", "Not yet", "Not yet but I want to", "Nah I haven't had a chance", "I haven't had time", "Nah I don't care", "I don't really care about it"],
+            "did_not_see_resp": ["Ah", "I've heard good things", "I wonder if it's good", "mhm", "gotcha", "It's probably not that good"],
+            
+            "dumb_convo": ["#dumb_start##dumb_question_block#"],
+            "dumb_question_block": ["#dumb_fight_q#\n#dumb_answer_yn_block#", "#dumb_eat_q#\n#dumb_answer_quant#\n#dumb_eat_resp#"],
+            "dumb_start": ["ok, ", "So, ", "Ok here's one, ", "here's one for you, ", "ok question, ", "important question, "],
+            "dumb_fight_q": ["do you think #fighter# could beat #fighter# in a fight?", "do you think #fighter# would win a fight against #fighter#?"],
+            "dumb_eat_q": ["how many #food# could do you eat right now?", "how many #food# do you think you could eat in one sitting?"],
+            "dumb_answer_yn_block": ["#dumb_answer_y#", "#dumb_answer_n#"],
+            "dumb_answer_y": ["#pre_bit_dumb# #assessment_pos# #post_bit_dumb#\n#dumb_agree#", "#pre_bit_dumb# #assessment_pos# #post_bit_dumb#\n#dumb_disagree#\n#dumb_push_pos#\n#defuse#"],
+            "dumb_answer_n": ["#pre_bit_dumb# #assessment_neg# #post_bit_dumb#\n#dumb_agree#", "#pre_bit_dumb# #assessment_neg# #post_bit_dumb#\n#dumb_disagree#\n#dumb_push_neg#\n#defuse#"],
+            "dumb_answer_quant": ["umm probably like #dumb_number#", "#dumb_number#", "idk #dumb_number#", "at least #dumb_number#", "I'd say #dumb_number#", "I'm gonna go with #dumb_number#", "uh #dumb_number#", "like #dumb_number#", "probably about #dumb_number#"],
+            "dumb_answer_quant_resp": ["woah", "wow", "that's a lot", "that's a whole lot"],
+            "same_resp": ["hehe me too", "same", "same tbh", "me too tbh"],
+            "dumb_eat_resp": ["#dumb_answer_quant_resp#", "#same_resp#"],
+            "pre_bit_dumb": ["um,", "um", "uhh", "", "", ""],
+            "assessment_pos": ["absolutely", "definitely", "obviously", "of course", "yes", "yeah", "clearly"],
+            "assessment_neg": ["no way", "of course not", "no", "absolutely not", "definitely no", "obviously no"],
+            "post_bit_dumb": ["no question", "hands down", "", "", ""],
+            "fighter": ["a gorilla", "a bear", "a tiger", "a shark", "an eagle", "an elephant", "three badgers", "twenty cobras", "a horse", "you and me together", "twenty five year olds", "batman", "bruce lee", "the rock", "jet li", "jackie chan", "vin diesel", "chuck norris", "muhammad ali"],
+            "food": ["pizzas", "hot dogs", "hamburgers", "mozarella sticks", "bagels", "donuts", "chicken nuggets", "steaks", "potatoes", "cookies"],
+            "dumb_number": ["twenty", "fifty", "a hundred", "a thousand", "two thousand", "a million", "a billion", "three hundred and twenty eight", "like an infinite amount", "so many", "a whole dang lot"],
+            "dumb_agree": ["yeah", "yeah for sure", "totally", "yeah totally", "probably", "yeah probly", "probly", "mhm", "makes sense", "sounds legit", "ya"],
+            "dumb_disagree": ["what no way", "nuh uh", "what???", "are you for real??", "no way"],
+            "dumb_push_pos": ["what, of course", "uh, yes", "um obviously???", "come on I'm right", "you know I'm right"],
+            "dumb_push_neg": ["what of course not", "what no way!", "what are you serious?", "you know I'm right", "it's impossible"],
+            "defuse": ["idk maybe", "i don't know", "maybe...", "I'll have to think about it", "we'll see", "idk I'm still not convinced", ":/", ":I", ":X"],
+            
+            "cute_convo": ["#cute_start#did you see this #cute_adj# #cute_animal# photo #cute_context#?\n#whether_saw#\n#squee#\n#squee#", "#cute_start##name# sent me a #cute_adj# #cute_animal# photo\n#lemme_see#\n#squee#\n#squee#", "#cute_start##name# just posted a #cute_adj# #cute_animal# picture!\n#whether_saw#\n#squee#\n#squee#"],
+            "cute_start": ["OMG ", "omg ", "hey ", "yo ", "", ""],
+            "cute_context": ["that's going around", "that #name# posted"],
+            "cute_adj": ["cute", "super cute", "adorable", "super adorable", "hecka cute", "cute as heck", "cute as fuck", "fuckin adorable", "cute", "amazing", "hilarious", "funny", "goofy", "silly"],
+            "whether_saw": ["#lemme_see#", "#saw_it#"],
+            "lemme_see": ["let me see!\n*posted a link*", "show me!\n*posted a link*", "let me see\n*posted a link*", "send it to me\n*posted a link*", "link?\n*posted a link*"],
+            "saw_it": ["I saw it!", "I saw!", "yesssssss", "It's so good!", "I did!"],
+            "squee": ["ahhhhhhh", "AHHHHHH", "OMG OMG OMG", "omg omg omg", "OMG", "omg", "it's so cuuuute", "#cute_adj#", "#cute_adj#", "#cute_adj#", "#cute_adj#", "#cute_adj#", "#cute_adj#", "<3", "<3!", "I'm dying"],
+            "cute_animal": ["dog", "tiny dog", "huge dog", "fat dog", "cat", "tiny cat", "kitten", "huge cat", "really fat cat", "mouse", "tiny mouse", "bunny", "rabbit", "little snake", "goofy snake", "chinchilla", "panda", "red panda", "possum", "raccoon", "dumb raccoon", "frog", "lizard", "ferret", "weird frog", "stupid fish"],
+            
+            "talk_cold": ["#sorry_pre#\n#go_on#\n#sorry#\n#go_on#\n#sorry_post#\n#apology_response#", "#still_mad#\n#still_mad_response#"],
+            "sorry_pre": ["I want to apologize", "I want to say I'm sorry", "I'm sorry"],
+            "go_on": ["go on", "ok", "...", "well"],
+            "sorry": ["I'm sorry for #harm_gerund#", "I'm sorry I #harm_past#"],
+            "harm_gerund": ["#harm_verb_gerund#", "#harm_verb_gerund#", "#harm_verb_gerund# and #harm_verb_gerund#"],
+            "harm_past": ["#harm_verb_past#", "#harm_verb_past#", "#harm_verb_past# and #harm_verb_past#"],
+            "harm_verb_gerund": ["stealing your #stolen_thing#", "taking your #stolen_thing#", "breaking #broken_thing#", "saying #said_thing#"],
+            "harm_verb_past": ["stole your #stolen_thing#", "took your #stolen_thing#", "broke #broken_thing#", "said #said_thing#", "told #said_to# #said_thing#"],
+            "stolen_thing": ["girlfriend", "boyfriend", "shoes", "hat", "coat", "signed #signed_thing#", "motorcycle", "car", "idea"],
+            "signed_thing": ["Lethal Weapon DVD", "Princess Bride DVD", "Love, Actually DVD", "Titanic DVD", "Pulp Fiction DVD", "copy of Catcher In The Rye", "copy of Infinite Jest", "copy of that book", "copy of The Road", "copy of Gender Trouble", "copy of The DaVinci Code", "copy of Harry Potter"],
+            "broken_thing": ["your car", "your motorcycle", "your camera", "your glasses", "your phone", "your bike", "your heart", "my promise", "our plans"],
+            "said_thing": ["you're stupid", "you're ugly", "you're annoying", "your haircut is stupid", "you have bad politics", "you have herpes", "you killed a dog", "that", "what I said", "you're gay", "you're straight", "you're a coward", "you're a #insult_adj# #insult_noun#"],
+            "said_to": ["everyone", "people", "#name#", "#figure#"],
+            "insult_adj": ["petty", "stupid", "ugly", "mean", "greedy", "delusional", "narcissistic", "self-obsessed", "ignorant", "disgusting", "filthy", "wicked"],
+            "insult_noun": ["idiot", "asshole", "bitch", "motherfucker", "narcissist", "moron", "dick", "piece of shit", "rat", "dog-fucker", "cow"],
+            "sorry_post": ["It was #intensifier_1# #action_bad# #sorry_post_trail##sorry_post_trail_trail#"],
+            "sorry_post_trail": ["", "", "of me", "to do that", "of me to do that"],
+            "sorry_post_trail_trail": [". I won't do that again", ". I know better now", ". I've learned my lesson", ". I'll make it up to you", ".It won't happen again", "", ""],
+            "action_bad": ["fucked up", "immature", "stupid", "selfish", "thoughtless", "dumb", "mean", "messed up", "harsh", "cruel"],
+            "intensifier_1": ["really", "super", "", ""],
+            "apology_response": ["#accept_apology#\n#post_accept#", "#not_accept_apology#\n#post_not_accept#"],
+            "accept_apology": ["It's ok I guess", "I forgive you", "alright, I get it", "don't worry about it", "it's in the past now", "it's in the past I guess", "I guess I forgive you", "Just forget it", "forget about it"],
+            "not_accept_apology": ["I'm still mad", "I can't forgive that", "I don't forgive you", "that doesn't fix it", "that's not enough", "I don't care", "whatever", "fuck you", "apology not accepted"],
+            "post_accept": ["I'm glad", "cool", "thank you", "thanks", ":)", "thank you. really", "thanks, I mean it"],
+            "post_not_accept": ["fine", "...", "I get it", "whatever", "ok", "I understand", "well fuck you too", "well fuck you then", "don't be a dick", "really?", "come on", "seriously?", "why...", "I'm sorry", "fuck, I'm sorry", "fuck", "damn it", "I hope you change your mind", "I don't think you're being fair", "come on, be fair"],
+            "still_mad": ["I'm still mad about #still_mad_verb#"],
+            "still_mad_verb": ["#still_mad_gerund#", "#still_mad_past#"],
+            "still_mad_gerund": ["you stealing my #stolen_thing#", "you taking my #stolen_thing#", "you saying #said_thing_first#"],
+            "still_mad_past": ["#past_bit_1# stole my #stolen_thing#", "#past_bit_1# took my #stolen_thing#", "#past_bit_1# said #said_thing_first#"],
+            "still_mad_response": ["sorry :/\n#still_mad_re_response_pos#", "I'm sorry\n#still_mad_re_response_pos#", "fuck, I'm sorry\n#still_mad_re_response_pos#", "my bad\n#still_mad_re_response_pos#", "come on that was #long_time# ago\n#still_mad_re_response_neu#", "that was #long_time# ago\n#still_mad_re_response_neu#", "it's been #long_time#\n#still_mad_re_response_neu#", "get over it\n#still_mad_re_response_neg#", "deal with it\n#still_mad_re_response_neg#", "whatever", "I don't care\n#still_mad_re_response_neg#", "seriously?"],
+            "still_mad_re_response_pos": ["it's ok", "don't worry about it", "I'll get over it", "thanks", "it's ok I guess", "I guess I'll get over it", "don't worry about it I guess"],
+            "still_mad_re_response_neg": ["whatever", "fuck you", "fuck off", "you're such a dick", "you're a real asshole", "you're a real bitch", "ugh"],
+            "still_mad_re_response_neu": ["...", "whatever", "um ok I guess", ">:/", "hmm", "sigh", "that's not helpful"],
+            "past_bit_1": ["how you", "when you", "that time you"],
+            "long_time": ["a long time", "a while", "forever", "ages"],
+            "said_thing_first": ["I'm stupid", "I'm ugly", "I'm annoying", "my haircut is stupid", "I have bad politics", "I have herpes", "I killed a dog", "that", "what I said", "I'm gay", "I'm straight", "I'm a coward", "I'm a #insult_adj# #insult_noun#", "I worship the devil", "I use margarine in my pie crust", "I voted for Trump"],
+            
             "start_tag": ["hey, ", "so, ", "", ""],
             "understood": ["ah", "I see", "gotcha", "mhm"],
-            "approve": ["nice", "cool", "rad", "awesome", "neat", "sweet"],
+            "approve": ["nice", "cool", "rad", "awesome", "neat", "sweet", ":)"],
             "excited": ["Oh!!!", "~swoon~", "ahhhhhhh!", "OMG", "Really?????"],
             "disapprove": ["that sucks", "lame", "aww", "shame"],
             "forgive": ["it's ok", "it's fine", "don't worry about it", "whatever", "it's cool", "it's no problem"],
             "unknown": ["I don't know", "maybe", "who knows", "couldn't say", "I'm not sure", "it's possible", "could be"],
-            "name": ["Jack", "Jeremy", "Tom", "Harlan", "Mack", "Forrest", "Fran", "Kate", "Erin", "Phoenix", "Zoe", "Rain", "Chloe", "Brent", "Jamaal", "Tariq", "Cynthia", "Pip", "Zip", "Bud", "Marten"],
+            "name": ["Jack", "Jeremy", "Tom", "Harlan", "Mack", "Forrest", "Fran", "Kate", "Erin", "Phoenix", "Zoe", "Rain", "Chloe", "Brent", "Jamaal", "Tariq", "Cynthia", "Pip", "Zip", "Bud", "Marten", "Tyler", "Cole", "Ana", "Anna", "Hannah", "Margot", "Zinnia", "Daisy", "Christine", "Chris", "Rob", "Sal", "Paul", "Andy", "Matt", "Anton", "Mikhail", "Ilana", "Adina", "Janet", "Mara", "Hayley", "Sam", "Sam", "John", "Jean", "#nickname#"],
+            "nickname": ["Rabbit"],
             "figure": ["that #person_type# you like", "that #person_type# from #name#'s #event_type#", "that #person_type# from your #event_type#", "that #person_type# um...\n#name#?\n#affirmative#\n"],
             "person_type": ["guy", "girl"],
             "laugh": ["hehe", "hehehe", "haha", "hahaha", "heh", "lol", "lolol", "lmao", "rofl"],
@@ -105,10 +217,12 @@
             game.load.spritesheet('lie', 'assets/lie.png', protagonist_size, protagonist_size);
             
             game.load.audio('whale', 'whales_modified.ogg');
+            game.load.audio('chime', 'chime.ogg');
             game.load.image('dream_1', 'assets/dream_1.png');
             game.load.image('dream_2', 'assets/dream_2.png');
             game.load.image('dream_3', 'assets/dream_3.png');
             whale_sound = new Phaser.Sound(game, 'whale', 1, true);
+            chime_sound = new Phaser.Sound(game, 'chime', 1, true);
             
             game.time.advancedTiming = true;
             
@@ -248,10 +362,10 @@
             }
         }
         
-        function get_chat(num) {
+        function get_chat(value="#topic#") {
         
             var grammar_obj = tracery.createGrammar(chat_grammar);
-            var trace = grammar_obj.flatten("#convo#");
+            var trace = grammar_obj.flatten(value);
             var split = trace.split("\n");
             return split;
         }
@@ -346,7 +460,8 @@
                 for (var j = 0; j < 3; j++) {
                     chat_obj[j].alpha = 0;
                 }
-                clearInterval(chat_timer);
+                clearTimeout(chat_timer);
+                chime_sound.pause();
             }
         }
         
@@ -424,21 +539,23 @@
                     chat_obj[j] = game.add.text(0, 0, "", style);
                     chat_obj[j].setTextBounds((canvas_width / 3) * j + 20, 20 , (canvas_width / 3) - 40, canvas_height - 20);
                     
-                    chat_buffer[j] = get_chat(j);
+                    chat_speaker[j] = Math.floor(Math.random() * 2);
                 }
             
                 chat_name[0] = "date";
+                chat_buffer[0] = get_chat("#start_love#");
                 chat_name[1] = "bro";
+                chat_buffer[1] = get_chat("#start_bro#");
                 chat_name[2] = "them";
+                chat_buffer[2] = get_chat("#start_cold#");
             
             }
             
-            for (var j = 0; j < 1; j++) {
+            for (var j = 0; j < 3; j++) {
                 chat_obj[j].alpha = 1;
             }
             
-            chat_happens();
-            chat_timer = setInterval(chat_happens, 2000);
+            chat_timer = setTimeout(chat_happens, 1000);
         
         }
         
@@ -449,35 +566,55 @@
             var j = Math.floor((Math.random() * 3));
             
             var line = chat_buffer[j][0];
+            
+            if (chat_speaker[j] == 0) {
+                line = "You: " + line;
+            }
+            else {
+                line = chat_name[j] + ": " + line;
+            }
+            
             chat_text[j].push(line);
             
-            var displayText = display_text_for(chat_text[j], "You", chat_name[j]);
+            var displayText = display_text_for(chat_text[j]);
             
             chat_obj[j].setText(displayText);
             chat_buffer[j] = chat_buffer[j].slice(1, chat_buffer[j].length);
+            chat_speaker[j] = !chat_speaker[j];
+            chime_sound.pause();
+            chime_sound.play();
             
             if (chat_buffer[j].length == 0) {
-                chat_buffer[j] = get_chat(j);
+                
+                if (j == 0) {
+                    chat_buffer[j] = get_chat("#talk_lover#");
+                }
+                else if (j == 1) {
+                    chat_buffer[j] = get_chat("#talk_bro#");
+                }
+                else if (j == 2) {
+                    chat_buffer[j] = get_chat("#talk_cold#");
+                }
+                else {
+                    chat_buffer[j] = get_chat();
+                }
             }
             
             if (chat_text[j].length > chat_lines) {
                 chat_text[j] = chat_text[j].slice(1, chat_text[j].length);
             }
+            
+            //chat_timer = setTimeout(chat_happens, (Math.random() * 2000) + 1000 );
+            chat_timer = setTimeout(chat_happens, (Math.random() * 0500) );
         }
         
-        function display_text_for(text, name1, name2) {
+        function display_text_for(text) {
         
             var ret = "";
             
             for (var i = 0; i < text.length; i++) {
             
-                if (i%2 == 0) {
-                    ret += name1;
-                } else {
-                    ret += name2;
-                }
-                
-                ret += ": " + text[i] + "\n";
+                ret += text[i] + "\n"
             }
             
             return ret;
